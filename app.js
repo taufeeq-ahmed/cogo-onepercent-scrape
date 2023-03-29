@@ -1,11 +1,11 @@
 const puppeteer = require('puppeteer');
 const fs = require('fs');
 const path = require('path')
-async function run(){
+async function run() {
 
     const browser = await puppeteer.launch({
-        headless:false,
-        defaultViewport:false
+        headless: false,
+        defaultViewport: false
     });
     const page = await browser.newPage();
     const navigationPromise = page.waitForNavigation({ waitUntil: ['load', 'networkidle2'] });
@@ -17,98 +17,105 @@ async function run(){
 
     const unitHandles = await page.$$(".px-5.py-2.my-1.rounded-md.cursor-pointer");
 
-    for(let i=0;i<unitHandles.length;i++){
+    // for (let i = 0; i < unitHandles.length; i++) {
+    let i = 0;
+    const unitHandle = unitHandles[i];
+    const unitTitle = await page.evaluate(el => el.textContent, unitHandle);
+    await page.waitForSelector(".px-5.py-2.my-1.rounded-md.cursor-pointer");
+    await page.waitForTimeout(3000);
+    await page.evaluate(async (i) => await document.querySelectorAll(".px-5.py-2.my-1.rounded-md.cursor-pointer")[i].click(), i);
 
-        const unitHandle = unitHandles[i];
-        const unitTitle = await page.evaluate(el=>el.textContent,unitHandle);
-        await page.waitForSelector(".px-5.py-2.my-1.rounded-md.cursor-pointer");
+
+    const sectionHandles = await page.$$(".flex.flex-col.w-full.pl-2")
+    for (let j = 0; j < sectionHandles.length; j++) {
         await page.waitForTimeout(3000);
-        await page.evaluate(async (i)=> await document.querySelectorAll(".px-5.py-2.my-1.rounded-md.cursor-pointer")[i].click(),i);
+        await page.evaluate(async (i) => await document.querySelectorAll(".px-5.py-2.my-1.rounded-md.cursor-pointer")[i].click(), i);
 
+        sectionHandle = sectionHandles[j];
+        if (sectionHandle) {
 
-        const sectionHandles = await page.$$(".flex.flex-col.w-full.pl-2")
-        for(let j=0;j<sectionHandles.length;j++){
-            await page.waitForTimeout(3000);
-            await page.evaluate(async (i)=> await document.querySelectorAll(".px-5.py-2.my-1.rounded-md.cursor-pointer")[i].click(),i);
+            var sectionTitle = await page.evaluate(el => el.textContent, sectionHandle);
+            sectionTitle = sectionTitle.replace(/[^a-z]/gi, '');
 
-            sectionHandle = sectionHandles[j];
-            if(sectionHandle){
-            
-            var sectionTitle = await page.evaluate(el=>el.textContent,sectionHandle);
-            sectionTitle=sectionTitle.replace(/[^a-z]/gi, '');
-            
             await page.waitForTimeout(3000);
             await page.evaluate(async (j) => {
                 await document.querySelectorAll(".flex.flex-col.w-full.pl-2")[j].click()
-            },j);
-            
-            
+            }, j);
+
+
 
             await page.waitForSelector(".inline-flex.items-center.rounded-3xl.border.border-transparent");
             await page.waitForTimeout(3000);
             const btnHandle = await page.$(".inline-flex.items-center.rounded-3xl.border.border-transparent");
-            
-            var btnText = await page.evaluate(el=>el.textContent,btnHandle);
-            
-            
-            
-            await btnHandle.evaluate(async b =>await b.click());
-           
-            
-            
+
+            var btnText = await page.evaluate(el => el.textContent, btnHandle);
+
+
+
+            await btnHandle.evaluate(async b => await b.click());
+
+
+
             await page.waitForTimeout(3000);
             const leftHandles = await page.$$(".flex.justify-between.items-start.flex-1.text-sm.mb-1");
             const realLeftHandles = [];
-            
-            for(let k=0;k<leftHandles.length/2;k++){
+
+            for (let k = 0; k < leftHandles.length / 2; k++) {
                 realLeftHandles.push(leftHandles[k]);
             }
-          
-            for(let k=0;k<realLeftHandles.length;k++){
-                let leftText = await page.evaluate(el=>el.textContent,leftHandles[k]);
-                leftText=leftText.replace(/[^a-z]/gi, '');
-                await page.evaluate((l)=>{l.click()},realLeftHandles[k])
+
+            for (let k = 0; k < realLeftHandles.length; k++) {
+                let leftText = await page.evaluate(el => el.textContent, leftHandles[k]);
+                leftText = leftText.replace(/[^a-z]/gi, '');
+                await page.evaluate((l) => { l.click() }, realLeftHandles[k])
                 await page.waitForTimeout(3000);
 
-                const pageContent = await page.evaluate(() => document.querySelector('*').outerHTML);
-                
-                const folderUnit = path.resolve(__dirname,unitTitle)
+                const pageContent = await page.evaluate(() => {
+                    const ele = document.querySelector('#scroller')
+                    if (ele) {
+                        return ele.outerHTML;
+                    }
+                });
+
+                const folderUnit = path.resolve(__dirname, unitTitle)
                 try {
                     if (!fs.existsSync(folderUnit)) {
                         fs.mkdirSync(folderUnit);
                     }
-                    const folderSection = path.resolve(__dirname,unitTitle,sectionTitle)
-                    try{
+                    const folderSection = path.resolve(__dirname, unitTitle, sectionTitle)
+                    try {
                         if (!fs.existsSync(folderSection)) {
                             fs.mkdirSync(folderSection);
                         }
-                    }catch(err) {
+                    } catch (err) {
                         console.log(err);
                     }
                 } catch (err) {
                     console.error(err);
                 }
-                const URL  = path.resolve(__dirname, unitTitle, sectionTitle ,leftText+".html");
+                const URL = path.resolve(__dirname, unitTitle, sectionTitle, leftText + ".html");
                 console.log(URL);
-                
-                
 
-                fs.appendFile(URL,pageContent,()=>{
-                    console.log("saved succesfully");
-                })
+
+                if (pageContent) {
+                    fs.appendFile(URL, pageContent, () => {
+                        console.log("saved succesfully");
+                    })
+                }
+
 
             }
-            
-            
-            
+
+
+
             await page.waitForTimeout(3000);
             await page.goBack();
-            }
-            
-            
-
         }
-    }
 
+
+
+    }
 }
+
+// }
 run();
